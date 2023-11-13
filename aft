@@ -1,0 +1,319 @@
+
+import React, { useState } from 'react';
+import axios from 'axios';
+
+// import Home from './Home';
+
+function LoginForm({ setIsLogin }: any) {
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+ 
+
+
+
+  const handleLogin = async () => {
+    try {
+      const response = await axios.post('http://localhost:5000/users/login', {
+        username,
+        password,
+      });
+
+      console.log(response)
+
+      const token = response.data.token;
+
+      // Save the token to local storage
+      localStorage.setItem('token', token);
+      setIsLogin(true)
+      // <Home/>
+      // Redirect the user or perform other actions
+    } catch (error) {
+      console.error('Login failed:', error);
+    }
+  }
+  return (
+    <div className='container align-items-center justify-content-center col-md-3 was-validated'>
+      <h4 className='text-center mb-3'>Login to your account</h4>
+      <div>
+        <label className='form-label'>Username:</label>
+        <input className='form-control'
+          type="text"
+          placeholder="Username"
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
+          required
+        />
+      </div>
+      <div>
+        <label className='form-label'>Password:</label>
+        <input className='form-control'
+          type="password"
+          placeholder="Password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          required
+        />
+      </div>
+    
+   
+      <button type="submit" onClick={handleLogin} className="btn btn-primary btn-lg mt-3">Sign in</button>
+    </div>
+  );
+}
+
+export default LoginForm;
+
+
+
+import React, { useEffect, useState } from 'react';
+import { IProduct, PageEnum } from './Product.type';
+import ProductList from './ProductList';
+import AddProduct from './AddProduct';
+import EditProduct from './EditProduct';
+
+import "bootstrap/dist/css/bootstrap.min.css";
+
+import Login from './Login'
+import CreateAccount from './CreateAccount';
+
+const Home = () => {
+  const [productList, setProductList] = useState([] as IProduct[]);
+  const [shownPage, setShownPage] = useState(PageEnum.list);
+  const [dataToEdit, setDataToEdit] = useState({} as IProduct);
+  const [isLogin, setIsLogin] = useState(false as Boolean);
+
+  useEffect(() => {
+    const listInString = window.localStorage.getItem("ProductList");
+    if (listInString) {
+      _setProductList(JSON.parse(listInString));
+    }
+  }, []);
+
+
+  const onAddProductClickHnd = () => {
+    setShownPage(PageEnum.add);
+  };
+
+  const showListPage = () => {
+    setShownPage(PageEnum.list);
+  };
+
+  const _setProductList=(list:IProduct[])=>{
+    setProductList(list);
+    window.localStorage.setItem("ProductList",JSON.stringify(list))
+  };
+
+ 
+
+
+  const addProduct = (data: IProduct) => {
+    _setProductList([...productList, data]);
+    console.log('Added product to list:', data);
+    showListPage();
+  };
+
+  const deleteProduct=(data:IProduct)=>{
+
+
+    const indexToDelete =productList.indexOf(data);
+    const tempList=[...productList]
+
+    tempList.splice(indexToDelete,1);
+    _setProductList(tempList)
+  };
+  
+  const EditProductData=(data:IProduct)=>{
+    setShownPage(PageEnum.edit)
+    setDataToEdit(data)
+  }
+
+const updateData=(data:IProduct)=>{
+  const filteredData=productList.filter(x=> x.id===data.id)[0]
+  const indexOfRecord=productList.indexOf(filteredData);
+  const tempData=[...productList]
+  tempData[indexOfRecord]=data;
+  _setProductList(tempData)
+}
+
+
+  // LOGOUT THE USER AND DELETE OR REMOVE THE TOKEN FROM LOCAL STORAGE
+
+  const handleLogout = () => {
+        localStorage.removeItem('token'); // Clear the token
+        setIsLogin(false);
+        
+      };
+
+  return (
+    <>
+      <section className='container mt-3'>
+        <CreateAccount/>
+        {isLogin === false && <Login setIsLogin={setIsLogin} />}
+        {isLogin === true && (
+          <>
+            {/* <p>Welcome, {username}!</p> */}
+            <button onClick={handleLogout} >Logout</button>
+            <input className="btn btn-primary" type="button" value="Add Product" onClick={onAddProductClickHnd} />
+            <ProductList list={productList} onDeleteClickHnd={deleteProduct} onEdit={EditProductData} />
+            </>
+        )}
+        {shownPage === PageEnum.add && <AddProduct onBackBtnClickedHnd={showListPage} onSubmitClickHnd={addProduct} />}
+        {shownPage===PageEnum.edit&&<EditProduct data={dataToEdit} onBackBtnClickHnd={showListPage} onUpdateClickHnd={updateData}/>}
+      
+      </section>
+    </>
+  );
+};
+
+export default Home;
+
+
+
+//this is intended for create new account for new users 
+//i dont know if server is right for storing new user and hash the new user password
+
+
+
+
+
+import React, { useState } from 'react';
+import axios from 'axios';
+// import Home from './Home';
+
+function CreateAccount({ setIsLogin }: any) {
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+
+  const handleCreate = async () => {
+    try {
+      const response = await axios.post('http://localhost:5000/users/register', {
+        username,
+        password,
+      });
+
+      console.log(response)
+    } catch (error) {
+      console.error('Register failed:', error);
+    }
+  }
+  return (
+    <div className='container align-items-center justify-content-center col-md-3 was-validated'>
+      <h4 className='text-center mb-3'>Register an Account</h4>
+      <div>
+        <label className='form-label'>Username:</label>
+        <input className='form-control'
+          type="text"
+          placeholder="Username"
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
+          required
+        />
+      </div>
+      <div>
+        <label className='form-label'>Password:</label>
+        <input className='form-control'
+          type="password"
+          placeholder="Password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          required
+        />
+      </div>
+    
+      <button type="submit" onClick={handleCreate} className="btn btn-primary btn-lg mt-3">Sign up</button>
+    </div>
+  );
+}
+
+export default CreateAccount;
+
+const express = require('express');
+const jwt = require('jsonwebtoken');
+const cors = require('cors');
+
+const app = express();
+const port = 5000;
+
+app.use(cors());
+app.use(express.json());
+
+const secretKey = 'mySecretKey';
+//how to add new regstered user here and hash there password when saving usiong bcrypt 
+const users = [
+  {
+    id: 1,
+    username: 'user123',
+    password: 'password123',
+  },
+  {
+    id: 2,
+    username: 'anotherUser',
+    password: 'anotherPassword',
+  },
+ 
+];
+
+//login the users data from const users and generate token per users 
+
+app.post('/users/login', (req, res) => {
+  const { username, password } = req.body;
+
+  // Find the user by username and check the password
+  const user = users.find((user) => user.username === username && user.password === password);
+
+  if (!user) {
+    return res.status(401).json({ message: 'Invalid username or password' });
+  }
+
+  // Create a JWT token
+  const token = jwt.sign({ username }, secretKey, { expiresIn: '1d' });
+
+  res.json({ token });
+});
+
+
+//register endpoint i dont know if its correct 
+
+
+// app.post('/register',async(req,res)=>{
+//   const { username, password } = req.body;
+//   try{
+//     const hashedPassword=await bcrypt.hash(req.body.password,10)
+//     const user={username:req.body.name,password:hashedPassword}
+//     users.push(user)
+//     res.status(201).send()
+//   }catch{
+//     res.status(500).send()
+//   }
+ 
+// })
+
+
+
+
+// User registration
+const register = async (req, res) => {
+ const { username,password } = req.body;
+ const salt = await bcrypt.genSalt(10);
+ const hashedPassword = await bcrypt.hash(password, salt);
+ const tempObj = { username ,password: hashedPassword };
+ users.push(user)
+res.status(201).json({ message: 'Registration successful' });
+};
+
+
+
+
+
+
+
+
+app.listen(port, () => {
+  console.log(`Server is running on port ${port}`);
+});
+
+
+
+
+
+

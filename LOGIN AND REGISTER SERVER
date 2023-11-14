@@ -1,0 +1,134 @@
+const express = require('express');
+const jwt = require('jsonwebtoken');
+const cors = require('cors');
+const bcrypt = require('bcrypt');
+
+const app = express();
+const port = 5000;
+
+app.use(cors());
+app.use(express.json());
+
+const secretKey = 'mySecretKey';
+const saltRounds = 10; // Number of salt rounds for bcrypt
+
+const users = [];
+
+// Registration endpoint
+app.post('/users/register', async (req, res) => {
+  const { username, password } = req.body;
+
+  // Check if username already exists
+  if (users.some((user) => user.username === username)) {
+    return res.status(400).json({ message: 'Username already exists' });
+  }
+
+  // Hash the password
+  const hashedPassword = await bcrypt.hash(password, saltRounds);
+
+  // Add the new user to the array
+  const newUser = {
+    id: users.length + 1,
+    username,
+    password: hashedPassword,
+  };
+  users.push(newUser);
+
+  res.status(201).json({ message: 'User registered successfully' });
+});
+
+// Login endpoint
+app.post('/users/login', async (req, res) => {
+  const { username, password } = req.body;
+
+  // Find the user by username
+  const user = users.find((user) => user.username === username);
+
+  if (!user) {
+    return res.status(401).json({ message: 'Invalid username or password' });
+  }
+
+  // Check the hashed password
+  const passwordMatch = await bcrypt.compare(password, user.password);
+
+  if (!passwordMatch) {
+    return res.status(401).json({ message: 'Invalid username or password' });
+  }
+
+  // Create a JWT token
+  const token = jwt.sign({ username }, secretKey, { expiresIn: '1d' });
+
+  res.json({ token });
+});
+
+app.listen(port, () => {
+  console.log(`Server is running on port ${port}`);
+});
+
+
+
+
+
+Registration form
+
+
+import React, { useState } from 'react';
+import axios from 'axios';
+
+function RegistrationForm() {
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+
+  const handleRegistration = async () => {
+    try {
+      const response = await axios.post('http://localhost:5000/users/register', {
+        username,
+        password,
+      });
+
+      console.log(response.data.message);
+
+      // Handle successful registration, e.g., redirect to login page
+    } catch (error) {
+      console.error('Registration failed:', error.response.data.message);
+    }
+  };
+
+  return (
+    <div className='container align-items-center justify-content-center col-md-3 was-validated'>
+      <h4 className='text-center mb-3'>Register a new account</h4>
+      <div>
+        <label className='form-label'>Username:</label>
+        <input
+          className='form-control'
+          type='text'
+          placeholder='Username'
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
+          required
+        />
+      </div>
+      <div>
+        <label className='form-label'>Password:</label>
+        <input
+          className='form-control'
+          type='password'
+          placeholder='Password'
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          required
+        />
+      </div>
+
+      <button
+        type='submit'
+        onClick={handleRegistration}
+        className='btn btn-primary btn-lg mt-3'
+      >
+        Register
+      </button>
+    </div>
+  );
+}
+
+export default RegistrationForm;
